@@ -3,8 +3,17 @@ import { ArrivalNotices } from '../features/arrivals/ArrivalNotices'
 import { SpeciesPrices } from '../features/species-prices/SpeciesPrices'
 import { PublicQuery } from '../features/public-query/PublicQuery'
 import { supabaseConfig } from '../lib/supabase/client'
+import { useState } from 'react'
+import { AuthProvider } from '../features/auth/AuthProvider'
+import { useAuth } from '../features/auth/AuthContext'
 
 export function App() {
+  return <AuthProvider><AppContent /></AuthProvider>
+}
+
+function AppContent() {
+  const { session } = useAuth()
+  const [refreshVersion, setRefreshVersion] = useState(0)
   return (
     <>
       <a className="skip-link" href="#contenido">Saltar al contenido</a>
@@ -34,14 +43,14 @@ export function App() {
           </div>
         </section>
         <aside className="project-status" aria-label="Estado del proyecto">
-          <strong>Versión inicial · En preparación</strong>
+          <strong>Avisos de arribo</strong>
           <span>{supabaseConfig.configured
-            ? 'Variables de Supabase configuradas; conexión no verificada.'
+            ? 'Consulta avisos publicados o inicia sesión para registrar un arribo.'
             : supabaseConfig.message}</span>
         </aside>
         <div className="section-heading"><span className="eyebrow">Una plataforma, cuatro espacios</span><h2>Desde el mar hasta el terminal</h2></div>
-        <div className="modules"><FisherAuth /><ArrivalNotices /><SpeciesPrices /></div>
-        <PublicQuery />
+        <div className="modules"><FisherAuth /><ArrivalNotices key={session?.user.id ?? 'visitor'} onSaved={() => setRefreshVersion(value => value + 1)} /><SpeciesPrices /></div>
+        <PublicQuery refreshVersion={refreshVersion} />
       </main>
       <footer><span>Terminal Pesquero de Chorrillos</span><span>MVP académico · PFC III Tipo F</span></footer>
     </>

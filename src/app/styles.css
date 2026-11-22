@@ -52,3 +52,19 @@ footer { display: flex; justify-content: space-between; gap: 16px; padding-block
 @media (max-width: 900px) { .site-header { flex-wrap: wrap; padding-block: 20px; gap: 20px; } nav { flex-wrap: wrap; gap: 16px; } .hero { gap: 24px; } .harbor { height: 290px; } .modules { gap: 12px; } .module { padding: 20px; } .public-panel { padding: 25px; gap: 24px; } }
 @media (max-width: 640px) { .site-header, main, footer { width: calc(100% - 36px); } .site-header { align-items: flex-start; } nav { font-size: 12px; gap: 14px; } .nav-public { padding: 8px; } .hero { grid-template-columns: 1fr; padding-top: 36px; } .hero-copy > p { max-width: none; } .harbor { height: 230px; border-radius: 90px 90px 6px 6px; } .sun { top: 22px; right: 60px; width: 60px; height: 60px; } .modules, .public-panel { grid-template-columns: 1fr; } .section-heading { margin-top: 38px; } footer { flex-direction: column; } }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+form { display: grid; gap: 14px; }
+label { display: grid; gap: 6px; font-size: 13px; line-height: 1.5; }
+input, select, button { font: inherit; border: 1px solid #9caf9b; border-radius: 4px; padding: 10px; min-width: 0; width: 100%; }
+input, select { color: #163d40; background: white; }
+button { width: auto; cursor: pointer; background: #174d50; color: white; font-size: 13px; min-height: 44px; }
+button:hover:not(:disabled) { background: #246164; }
+button:disabled { cursor: wait; opacity: .65; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid #b55c28; outline-offset: 3px; }
+.checkbox-label { display: flex; align-items: center; gap: 10px; }
+.checkbox-label input { width: 18px; height: 18px; flex-shrink: 0; }
+[role="alert"] { color: #8b2c23; }
+[role="status"], .public-results, .module { overflow-wrap: anywhere; }
+.arrival-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; max-height: 560px; overflow-y: auto; }
+.arrival-list li { padding: 18px; background: #fcfcf8; border: 1px solid #c4d1bd; border-radius: 5px; }
+.arrival-list p { margin: 8px 0 0; }
+.public-results { min-width: 0; }

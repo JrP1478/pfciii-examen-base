@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 
 vi.mock('../lib/supabase/client', () => ({
+  getSupabaseClient: () => null,
   supabaseConfig: { configured: false, message: 'Falta configurar las variables públicas de Supabase.' },
 }))
 
@@ -13,8 +14,8 @@ describe('interfaz inicial', () => {
       expect(html).toContain(`id="${section}"`)
       expect(html).toContain(`href="#${section}"`)
     }
-    expect(html).toContain('Consulta aún no disponible')
-    expect(html).toContain('No se han consultado arribos ni precios.')
+    expect(html).toContain('Consulta no disponible: falta configurar Supabase.')
+    expect(html).toContain('Registro no disponible: falta configurar Supabase.')
     expect(html).toContain('Falta configurar las variables públicas de Supabase.')
     expect(html).not.toContain('<form')
   })
