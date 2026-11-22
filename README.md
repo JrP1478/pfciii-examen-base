@@ -1,7 +1,7 @@
 # Terminal Pesquero de Chorrillos · PFC III Tipo F
 
 React + TypeScript + Vite, Supabase Auth/PostgreSQL, Vitest y GitHub Actions.
-Node.js 24. Trabajar exclusivamente en `test`.
+Node.js 24. La rama `main` contiene el MVP integrado mediante el [PR #1](https://github.com/JrP1478/pfciii-examen-base/pull/1); `test` conserva el historial de desarrollo e integración.
 
 ```sh
 npm ci
@@ -270,7 +270,11 @@ Estas reglas no sustituyen una revisión exhaustiva ni verifican las políticas 
 
 Gitleaks usa la CLI gratuita, sin la Action que puede requerir licencia. No carga `.env.local`
 ni publica informes con valores sensibles. Los resultados comprobables quedan en los logs y
-en el resumen de los jobs `verify`, `sast` y `secrets` de cada ejecución de CI en `test`.
-La verificación de la Pregunta 4 reportó lint correcto, 114 pruebas aprobadas, build correcto y cero
-vulnerabilidades npm. Los resultados de Semgrep y Gitleaks se registran en la CI completa;
-la existencia del workflow no constituye por sí sola evidencia de ejecución exitosa.
+en el resumen de los jobs `verify`, `sast` y `secrets` de GitHub Actions. En la ejecución
+[44977471274](https://github.com/JrP1478/pfciii-examen-base/actions/runs/44977471274)
+los tres jobs finalizaron en `success`; Codex reportó lint, 147 pruebas y build correctos.
+El [PR #1](https://github.com/JrP1478/pfciii-examen-base/pull/1) se fusionó a `main`
+mediante merge commit [`00c9fb8`](https://github.com/JrP1478/pfciii-examen-base/commit/00c9fb8ae7ff85a070e071ad79c027cc006625f2)
+el 21/11/2026 (hora de Lima). Vercel marcó `success` el despliegue de ese commit;
+la comprobación HTTP directa de la URL de producción sigue separada de este estado.
+El repositorio permanece privado; acceso docente y eventual publicación son tareas distintas.
