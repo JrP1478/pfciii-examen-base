@@ -1,6 +1,6 @@
 # P2 — Evidencia Kanban académica: PFCEX (21/11/2026)
 
-> **ATENCIÓN — SIMULACIÓN DIDÁCTICA**: la bitácora registra movimientos **realmente ejecutados en Jira hoy** para demostrar el flujo de estados, NO actividad distribuida durante las fechas futuras de los cuatro sprints. Los sprints 34–37 permanecen `future`. No se deriva de esta bitácora un burndown ni velocidad histórica.
+> **ATENCIÓN — SIMULACIÓN DIDÁCTICA**: la bitácora registra movimientos **realmente ejecutados en Jira el 21/11/2026** para demostrar el flujo de estados, NO actividad distribuida durante las fechas futuras de los cuatro sprints. Los sprints 34–37 permanecen `future`. No se deriva de esta bitácora un burndown ni velocidad histórica.
 
 ## Historias representativas por sprint
 
@@ -23,15 +23,16 @@ Se registró también `PFCEX-11` en **In Review** (S3) y `PFCEX-16` en **In Prog
 | Done | PFCEX-7, 10, 13, 14 | 4 | 18 |
 | **Total** | | **12** | **41** |
 
-## WIP
+## WIP — estado verificado en Jira
 
-**Política académica propuesta**: In Progress ≤2, In Review ≤1, sin límite para To Do/Done. El snapshot cumple (1≤2, 1≤1). El tablero Jira 34 informa `constraintType=none`, por lo que los límites **aún no están configurados como restricciones nativas**. Una política en documento **no demuestra** aplicación automática por Jira.
+**Límites máximos configurados** en el tablero 34: In Progress ≤2, In Review ≤1, To Do y Done sin máximo. La respuesta actual del tablero contiene `columns[].max = 2` para In Progress y `columns[].max = 1` para In Review.
+
+Las tarjetas observadas cumplen ambos valores: In Progress 1/2 e In Review 1/1. El campo global `constraintType=none` no confirma un mecanismo de bloqueo de transiciones; los máximos se usan como límites visuales de control, sin prometer impedimento automático.
 
 ## Pendientes de evidencia
 
-1. Abrir [tablero Jira 34](https://jrplox987.atlassian.net/jira/software/projects/PFCEX/boards/34), capturar columnas y tarjetas con estado actual.
-2. Examinar configuración de columnas de Jira; si admite WIP limit, aplicar 2/1 y capturar; en caso contrario, mantener la política documentada sin atribuir enforcement.
-3. Conservar capturas de épicas y sprints planificados; compartir tablero con docente.
-4. Burndowns y velocidad permanecen identificados como **valores hipotéticos** en [P2_SIMULACION_SCRUM.md](./P2_SIMULACION_SCRUM.md).
+1. Capturar configuración de columnas mostrando los límites WIP y el tablero cuando haya un sprint visible.
+2. Conservar capturas de épicas y sprints planificados; compartir tablero con docente.
+3. Burndowns y velocidad permanecen identificados como **valores hipotéticos** en [P2_SIMULACION_SCRUM.md](./P2_SIMULACION_SCRUM.md).
 
 Evidencias de implementación: [PR #1](https://github.com/JrP1478/pfciii-examen-base/pull/1), [CI](https://github.com/JrP1478/pfciii-examen-base/actions/runs/44973008997), [Vercel Preview](https://pfciii-examen-base-git-test-jrplox987-8298s-projects.vercel.app).
