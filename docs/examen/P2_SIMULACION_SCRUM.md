@@ -47,17 +47,14 @@ Hitos planificados: 27/11 acceso y arribo; 04/12 catálogo; 11/12 publicación; 
 
 ## Kanban y WIP
 
-Jira board [PFCEX board 34](https://jrplox987.atlassian.net/jira/software/projects/PFCEX/boards/34) tiene cuatro columnas: **To Do / In Progress / In Review / Done**. El conector devuelve `constraintType: none`; **NO hay un límite WIP configurado en Jira**.
+Jira board [PFCEX board 34](https://jrplox987.atlassian.net/jira/software/projects/PFCEX/boards/34) tiene cuatro columnas: **To Do / In Progress / In Review / Done**. **Límites máximos WIP configurados y comprobados en la respuesta de Jira:** In Progress `max:2`, In Review `max:1`; To Do y Done sin máximo. El objeto global `constraintType` permanece como `none`, así que no debe afirmarse bloqueo automático de transiciones por superar límites.
 
-Política **propuesta**, aún no aplicada nativamente: To Do ilimitado, In Progress máximo 2, In Review máximo 1, Done ilimitado.
-
-Ejemplo ilustrativo de transición (no changelog): `PFCEX-7: To Do D0 → In Progress D1 → In Review D3 → Done D4`. Documentar similares por sprint si se realizan en la simulación; no inventar que ya sucedieron.
+El [registro de demostración Kanban](./P2_KANBAN_EVIDENCIA_SIMULADA.md) identifica las transiciones realizadas el 21/11/2026 para una historia por sprint y la distribución actual. Son movimientos didácticos, no ejecuciones históricas de los sprints futuros.
 
 ## Evidencia pendiente
 
-- Capturas reales del tablero, backlog y sprints.
-- Historial de movimientos entre columnas o registro rotulado explícitamente como simulación.
-- Configuración visual de límites WIP si el tablero permite editarla.
+- Capturas reales del tablero con los límites y de backlog/épicas/sprints.
 - Compartir Jira y GitHub con el docente; comprobar el acceso desde otra sesión.
+- Los cuatro sprints aún están programados como `future`; no existe burndown de ejecución histórica de cada sprint.
 
 Enunciado: Práctica Calificada 2, Tipo F, Pregunta 2. Seguimiento: [PFCEX-18](https://jrplox987.atlassian.net/browse/PFCEX-18).
