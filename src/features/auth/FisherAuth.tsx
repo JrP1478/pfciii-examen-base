@@ -1,0 +1,41 @@
+import { useState, type FormEvent } from 'react'
+import { isFisher, useAuth } from './AuthContext'
+import { LogoutButton } from './LogoutButton'
+
+export function FisherAuth() {
+  const { client, session, loading, error: sessionError } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!client || busy) return
+    setBusy(true); setError('')
+    try {
+      const { error } = await client.auth.signInWithPassword({ email: email.trim(), password })
+      if (error) setError('No se pudo iniciar sesión. Verifica tus credenciales y conexión.')
+    } catch { setError('No se pudo iniciar sesión. Verifica tu conexión e inténtalo de nuevo.') }
+    finally { setPassword(''); setBusy(false) }
+  }
+
+  return (
+    <section className="module" id="pescadores" aria-labelledby="auth-title">
+      <span className="eyebrow">Acceso de pescadores</span><h2 id="auth-title">Bienvenido a bordo.</h2>
+      {!client ? <p>Acceso no disponible: falta configurar Supabase.</p>
+        : loading ? <p role="status">Recuperando sesión…</p>
+        : session ? <div>
+          <p>Sesión iniciada: {session.user.email}</p>
+          {!isFisher(session) && <p role="alert">Esta cuenta no está habilitada como pescador. Contacta al administrador.</p>}
+          <LogoutButton />
+        </div> : <form onSubmit={signIn}>
+          <p>Accede con tu cuenta prehabilitada. No hay registro público.</p>
+          <label>Correo electrónico<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} disabled={busy} /></label>
+          <label>Contraseña<input type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} disabled={busy} /></label>
+          <button disabled={busy}>{busy ? 'Ingresando…' : 'Iniciar sesión'}</button>
+        </form>}
+      {(error || sessionError) && <p role="alert">{error || sessionError}</p>}
+    </section>
+  )
+}

@@ -1,0 +1,45 @@
+rules:
+  - id: no-dynamic-code-execution
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Avoid dynamic code execution; parse data instead.
+    metadata:
+      category: security
+      cwe: ["CWE-95: Eval Injection"]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+      - pattern: Function(...)
+  - id: no-raw-html-injection
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Render text with React; raw HTML sinks require a security-reviewed sanitizer.
+    metadata:
+      category: security
+      cwe: ["CWE-79: Cross-site Scripting"]
+    pattern-either:
+      - pattern: $NODE.innerHTML = $HTML
+      - pattern: $NODE.outerHTML = $HTML
+      - pattern: document.write(...)
+      - pattern: $NODE.insertAdjacentHTML(...)
+      - pattern-regex: 'dangerouslySetInnerHTML\s*='
+  - id: no-admin-key-in-browser-env
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Browser environment must never reference secret or service-role keys.
+    metadata:
+      category: security
+      cwe: ["CWE-798: Hard-coded Credentials"]
+    pattern-regex: 'import\.meta\.env\.VITE_[A-Z0-9_]*(?:SERVICE_ROLE|SECRET)[A-Z0-9_]*'
+  - id: no-sensitive-console-data
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Do not log passwords, tokens or complete sessions.
+    metadata:
+      category: security
+      cwe: ["CWE-532: Sensitive Information in Log Files"]
+    patterns:
+      - pattern: console.$METHOD(..., $SENSITIVE, ...)
+      - metavariable-regex:
+          metavariable: $SENSITIVE
+          regex: '(?i)^(password|token|access_token|refresh_token|session|.*secret.*)$'
