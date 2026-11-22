@@ -168,3 +168,32 @@ En este incremento se comprobó la lectura anónima real mediante las funciones 
 arribos publicados (una fila), ofertas publicadas y filtro por especie (sin filas), sin errores.
 No se insertaron datos remotos. Esto no prueba login, persistencia de ofertas, edición ni
 denegación de acceso ajeno en Supabase real: esos pasos autenticados siguen pendientes.
+
+## Pregunta 4: controles de seguridad automatizados
+
+El workflow `.github/workflows/ci.yml` ejecuta tres jobs independientes para que un fallo
+de calidad no impida los otros escaneos. No usa `continue-on-error`, servicios de pago,
+GitHub Advanced Security ni credenciales adicionales. Único permiso: `contents: read`;
+checkout no conserva el token. Las acciones están fijadas por SHA, el runner es Ubuntu 24.04
+y Node 24.22.3 incluye npm 11.19.1.
+
+| Control | Versión y alcance | Condición de bloqueo y evidencia |
+| --- | --- | --- |
+| Instalación, lint, tests, build | `npm ci`, `npm run lint`, `npm test`, `npm run build` | Cualquier comando fallido bloquea el job `verify` |
+| Auditoría de dependencias | npm 11.19.1; `npm audit --audit-level=low`, incluyendo desarrollo | Cualquier vulnerabilidad reportada o error de registro falla; resultado en logs y resumen de CI |
+| SAST | Semgrep CE 1.186.0, imagen fijada por digest; reglas locales `.semgrep/security.yml` | Hallazgos, errores o ausencia de fuentes analizadas fallan; resumen con archivos/hallazgos/errores |
+| Secretos | Gitleaks CLI 8.30.1, descarga verificada por SHA-256 | Escanea todo el historial obtenido con `fetch-depth: 0` y `--all`; cualquier hallazgo/error falla; salida con `--redact=100` |
+
+Semgrep corre sin red, con métricas y comprobaciones de versión desactivadas. El conjunto
+local cubre ejecución dinámica, inyección de HTML/XSS, referencias a claves administrativas
+en variables del navegador y logs de contraseñas/tokens/sesiones. Sus casos positivos y
+negativos en `.semgrep/security.tsx` se verifican antes del escaneo; son fixtures no ejecutables,
+fuera del bundle y excluidos únicamente de ESLint. No se excluye código de aplicación del SAST.
+Estas reglas no sustituyen una revisión exhaustiva ni verifican las políticas remotas de Supabase.
+
+Gitleaks usa la CLI gratuita, sin la Action que puede requerir licencia. No carga `.env.local`
+ni publica informes con valores sensibles. Los resultados comprobables quedan en los logs y
+en el resumen de los jobs `verify`, `sast` y `secrets` de cada ejecución de CI en `test`.
+La verificación local reportó lint correcto, 114 pruebas aprobadas, build correcto y cero
+vulnerabilidades npm. Los resultados de Semgrep y Gitleaks se registran en la CI completa;
+la existencia del workflow no constituye por sí sola evidencia de ejecución exitosa.

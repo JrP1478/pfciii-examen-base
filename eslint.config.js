@@ -5,7 +5,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**'] },
+  // SAST fixtures intentionally contain unsafe code and are tested by Semgrep, not ESLint.
+  { ignores: ['dist/**', 'node_modules/**', '.semgrep/security.tsx'] },
   js.configs.recommended,
   tseslint.configs.recommended,
   {
