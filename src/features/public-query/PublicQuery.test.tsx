@@ -30,6 +30,28 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.resetAllMocks() })
 
 describe('PFCEX-13: lectura pública, errores y sincronización', () => {
+  it('PFCEX-8/PFCEX-15: consultar de nuevo cambia la lectura, no el updated_at del arribo', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-22T12:00:00Z'))
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+    const updatedAt = '2026-11-21T13:30:45Z'
+    vi.mocked(listPublishedArrivals).mockResolvedValue([{ ...arrival, updated_at: updatedAt }])
+    show()
+    await act(async () => {})
+    expect(screen.getByText(/^Arribo actualizado:/).querySelector('time')?.dateTime).toBe(updatedAt)
+    expect(screen.getByText(/^Última consulta al servicio:/).querySelector('time')?.dateTime).toBe('2026-11-22T12:00:00.000Z')
+    await act(async () => { await vi.advanceTimersByTimeAsync(PUBLIC_POLL_INTERVAL) })
+    expect(screen.getByText(/^Última consulta al servicio:/).querySelector('time')?.dateTime).toBe('2026-11-22T12:00:30.000Z')
+    expect(screen.getByText(/^Arribo actualizado:/).querySelector('time')?.dateTime).toBe(updatedAt)
+  })
+  it('PFCEX-8: una actualización posterior del servidor se refleja en el aviso público', async () => {
+    vi.mocked(listPublishedArrivals).mockResolvedValueOnce([{ ...arrival, updated_at: '2026-11-21T13:00:00Z' }])
+      .mockResolvedValueOnce([{ ...arrival, updated_at: '2026-11-21T15:00:00Z' }])
+    show()
+    expect((await screen.findByText(/^Arribo actualizado:/)).querySelector('time')?.dateTime).toBe('2026-11-21T13:00:00Z')
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar avisos' }))
+    expect((await screen.findByText(/^Arribo actualizado:/)).querySelector('time')?.dateTime).toBe('2026-11-21T15:00:00Z')
+  })
   it('muestra especie, cantidad, soles y su embarcación sin iniciar sesión', async () => {
     vi.mocked(listPublishedOffers).mockResolvedValue([offer])
     show()
@@ -142,6 +164,11 @@ describe('PFCEX-10/PFCEX-11/PFCEX-13: creación, edición y actualización de co
     fireEvent.change(screen.getByLabelText('Precio por kg (S/)'), { target: { value: '3.00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios de oferta' }))
     expect(await publicBoard.findByText(/3.00\/kg/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Editar TEST_SPECIES' }))
+    fireEvent.change(screen.getByLabelText('Cantidad disponible (kg)'), { target: { value: '0' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios de oferta' }))
+    expect(await publicBoard.findByText('Agotada')).toBeTruthy()
+    expect(publicBoard.queryByText(/kg disponibles/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Editar TEST_SPECIES' }))
     fireEvent.click(screen.getByLabelText('Publicar oferta'))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios de oferta' }))

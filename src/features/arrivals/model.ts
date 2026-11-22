@@ -50,3 +50,9 @@ export function validateArrival(form: ArrivalForm): { data: ArrivalInput; error?
 export function formatArrivalTime(value: string): string {
   return new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Lima' }).format(new Date(value))
 }
+
+export function formatRecordUpdateTime(value: string | undefined): string | null {
+  if (!value || !Number.isFinite(Date.parse(value))) return null
+  return new Intl.DateTimeFormat('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Lima' }).format(new Date(value))
+}

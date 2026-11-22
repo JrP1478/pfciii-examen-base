@@ -16,6 +16,12 @@ function fakeClient(result: Result) {
   return { client: { from: vi.fn().mockReturnValue(query) } as unknown as SupabaseClient, query }
 }
 describe('PFCEX-10/PFCEX-11: API de ofertas (dobles)', () => {
+  it('PFCEX-12: transmite y devuelve cero sin despublicar ni sustituir la cantidad', async () => {
+    const exhausted = { ...input, quantity_kg: 0, is_published: true }
+    const { client, query } = fakeClient({ data: { id: 'offer-id', ...exhausted }, error: null })
+    await expect(saveOffer(client, exhausted, 'offer-id')).resolves.toMatchObject({ quantity_kg: 0, is_published: true })
+    expect(query.update).toHaveBeenCalledWith(expect.objectContaining({ quantity_kg: 0, is_published: true }))
+  })
   it('selecciona arribos por propietario, incluidos sus borradores', async () => {
     const { client, query } = fakeClient({ data: [], error: null })
     await listOwnArrivals(client, 'owner')
@@ -62,6 +68,7 @@ describe('PFCEX-13/PFCEX-14: lectura pública y filtros (dobles)', () => {
     const columns = query.select.mock.calls[0][0] as string
     expect(columns).toContain('arrivals!inner(')
     expect(columns).not.toContain('owner_id')
+    expect(columns).toContain('actual_arrival_at,is_published,updated_at')
   })
   it('aplica especie antes del límite y escapa comodines', async () => {
     const { client, query } = fakeClient({ data: [], error: null })

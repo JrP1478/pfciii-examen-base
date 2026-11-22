@@ -41,6 +41,7 @@ describe('acceso a Supabase (dobles de prueba)', () => {
     await expect(listPublishedArrivals(client)).resolves.toEqual([])
     expect(query.eq).toHaveBeenCalledWith('is_published', true)
     expect(query.select.mock.calls[0][0]).not.toContain('owner_id')
+    expect(query.select.mock.calls[0][0]).toContain('updated_at')
     expect(query.limit).toHaveBeenCalledWith(50)
   })
   it('diferencia error de consulta de lista vacía', async () => {

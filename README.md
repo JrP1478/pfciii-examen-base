@@ -25,8 +25,9 @@ Estado de arribo: `expected` (estimado) o `arrived` (confirmado, exige hora real
 La publicación es independiente mediante `is_published`; los borradores no son públicos.
 Las horas del formulario y listado son de Lima (UTC−05:00).
 Las ofertas admiten especie, cantidad disponible en kg (hasta 3 decimales), precio por kg
-en PEN (hasta 2 decimales) y publicación. Para retirar disponibilidad, despublicar la oferta;
-la cantidad debe seguir siendo positiva según el esquema existente. Una oferta solo es
+en PEN (hasta 2 decimales) y publicación. Con la migración incremental de PFCEX-12,
+0 kg representa una especie agotada; una cantidad positiva representa stock disponible.
+Despublicar oculta la oferta y es independiente del agotamiento. Una oferta solo es
 pública si también lo es su arribo. La consulta pública usa filtros explícitos de ambos
 campos incluso si el visitante tiene sesión de propietario; RLS sigue siendo la autorización.
 No se incluye eliminación ni paginación. La edición de arribos propios está disponible en el panel.
@@ -35,8 +36,9 @@ La identidad propietaria y las fechas de auditoría se asignan en PostgreSQL.
 
 ## Esquema existente y configuración
 
-Este incremento no cambia SQL ni RLS. No volver a ejecutar la migración en el proyecto
-que ya la tiene aplicada. Los pasos 1–3 solo describen la instalación inicial en un proyecto nuevo;
+La migración inicial permanece intacta. No volver a ejecutarla en el proyecto
+que ya la tiene aplicada. PFCEX-12 requiere la migración incremental indicada más abajo.
+Los pasos 1–3 solo describen la instalación inicial en un proyecto nuevo;
 las verificaciones de este repositorio no demuestran acceso al proyecto Supabase real.
 
 1. En el proyecto Supabase de destino, abrir **SQL Editor → New query**.
@@ -163,7 +165,8 @@ En el proyecto de pruebas autorizado, usar dos cuentas prehabilitadas A y B con 
 | PFCEX-14 | `public-query/PublicQuery.tsx`, `species-prices/api.ts` | `PublicQuery.test.tsx` y `api.test.ts`: filtro de especie, comodines literales, limpieza y estado vacío; `postgres.test.ts`: lectura filtrada |
 
 Rutas relativas a `src/features/`, salvo `src/lib/supabase/postgres.test.ts`.
-No se añadieron dependencias ni se modificó la migración ya aplicada.
+El incremento de ofertas reutilizó el esquema original. La corrección de PFCEX-12 agrega
+la migración incremental descrita abajo, sin alterar la migración inicial.
 
 Con las cuentas autorizadas A/B y una ventana privada:
 
@@ -178,12 +181,58 @@ Con las cuentas autorizadas A/B y una ventana privada:
    usar la transacción de claims de B descrita arriba y ejecutar:
    `update public.arrival_offers set price_per_kg=1 where id='<UUID_OFERTA_A>'::uuid returning id;`
    Debe devolver cero filas; terminar con `rollback;`. No cambiar datos operativos para esta prueba.
-5. Probar cantidad/precio cero, negativos y exceso de decimales: la UI debe rechazarlos.
+5. Probar cantidad negativa, precio cero/negativo y exceso de decimales: la UI debe rechazarlos.
+   Con la migración de PFCEX-12 aplicada, cantidad cero debe guardarse como agotada.
    Simular pérdida de conexión: debe aparecer error y no confirmación de éxito.
 
 La consulta pública programa un polling **30 segundos después de terminar la consulta
 anterior**, omite ciclos con la pestaña oculta y conserva actualización manual. No es tiempo
 real: al desmontar o cambiar filtro se cancela el temporizador y se abortan peticiones previas.
+
+## Correcciones PFCEX-8, PFCEX-12 y PFCEX-15
+
+- Cada aviso y tarjeta pública muestra **Arribo actualizado** desde `arrivals.updated_at`,
+  con segundos y hora de Lima. **Última consulta al servicio** es la hora de lectura del cliente;
+  no sustituye ni modifica la auditoría del arribo. Si falta la fecha se indica que no está disponible.
+- `quantity_kg = 0` significa **Agotada**: se muestra sin stock, sin anunciar kg disponibles,
+  y con el precio como último precio publicado. Puede seguir publicada si su arribo también
+  está publicado. Stock positivo repone la disponibilidad; los borradores permanecen privados.
+- No se añadieron columnas ni se modificaron RLS, Auth o el diseño comercial.
+
+**Aplicación pendiente en Supabase:** la restricción original exigía `quantity_kg > 0`.
+Antes de usar el guardado de cero en el entorno real, abrir el proyecto correcto en
+**SQL Editor → New query**, copiar y ejecutar completo
+`supabase/migrations/202611210002_offer_zero_stock.sql`. No reejecutar ni editar
+`202611210001_arrivals.sql`. La nueva migración es transaccional, conserva datos, NOT NULL,
+el máximo de 999999999 kg, precios positivos, permisos, triggers y RLS; solo admite cero.
+Si falla, resolver la causa antes de reintentar, sin borrar registros ni restricciones adicionales.
+
+Verificar después en SQL Editor:
+
+```sql
+select pg_get_constraintdef(oid) as definition
+from pg_constraint
+where conrelid = 'public.arrival_offers'::regclass
+  and conname = 'arrival_offers_quantity_kg_check';
+select relrowsecurity, relforcerowsecurity
+from pg_class where oid = 'public.arrival_offers'::regclass;
+```
+
+La definición debe admitir `quantity_kg >= 0` y conservar el límite superior; ambas banderas
+RLS deben seguir en `true`. Ejecutar SQL desde el panel no actualiza el historial del CLI:
+si se usa Supabase CLI con proyecto ya enlazado, registrar esta versión como aplicada mediante
+`supabase migration repair 202611210002 --status applied` **solo tras verificar el SQL**.
+
+Validación manual pendiente: con datos propios autorizados, guardar 0 kg, comprobar la fila
+y la etiqueta Agotada desde una ventana anónima, reponer stock y comprobar el cambio.
+Probar un borrador y un arribo privado, y denegación de actualización con una segunda cuenta.
+Editar un arribo y contrastar su `updated_at` con el catálogo; refrescar sin editar debe cambiar
+solo la hora de consulta. No utilizar claves administrativas en el navegador ni enviar credenciales.
+
+Evidencia automatizada: tests unitarios de formato/stock, UI de lectura/agotamiento/reposición,
+API de cantidad cero y PostgreSQL/PGlite aplicando ambas migraciones. PGlite verifica que antes
+la cantidad cero falla, después se conserva sin perder registros y continúan las restricciones
+y la autorización. Esto no acredita aplicación de SQL ni escrituras en Supabase real.
 
 ## Evidencia automatizada frente a integración real
 

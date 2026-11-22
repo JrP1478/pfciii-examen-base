@@ -43,6 +43,7 @@ beforeAll(async () => {
     insert into auth.users values ('${a}'), ('${b}');
   `)
   await db.exec(readFileSync(new URL('../../../supabase/migrations/202611210001_arrivals.sql', import.meta.url), 'utf8'))
+  await db.exec(readFileSync(new URL('../../../supabase/migrations/202611210002_offer_zero_stock.sql', import.meta.url), 'utf8'))
 }, 30000)
 
 beforeEach(async () => {
@@ -51,6 +52,43 @@ beforeEach(async () => {
 afterAll(async () => { await db?.close() })
 
 describe('migración PostgreSQL y RLS (PGlite, Auth emulado)', () => {
+  it('PFCEX-12: persiste agotamiento/reposición propios, respeta publicación y deniega edición ajena', async () => {
+    await asUser(a)
+    const id = await insertArrival(true)
+    const offer = (await insertOffer(id, true)).rows[0].id
+    await db.query('update arrival_offers set quantity_kg=0 where id=$1', [offer])
+    const draftOffer = (await insertOffer(id, false)).rows[0].id
+    await db.query('update arrival_offers set quantity_kg=0 where id=$1', [draftOffer])
+    const privateArrival = await insertArrival(false)
+    const privateOffer = (await insertOffer(privateArrival, true)).rows[0].id
+    await db.query('update arrival_offers set quantity_kg=0 where id=$1', [privateOffer])
+    await asUser(null)
+    const published = await db.query<{ id: string; quantity_kg: string }>('select id,quantity_kg from arrival_offers')
+    expect(published.rows).toHaveLength(1)
+    expect(published.rows[0].id).toBe(offer)
+    expect(Number(published.rows[0].quantity_kg)).toBe(0)
+    await asUser(b)
+    expect((await db.query('update arrival_offers set quantity_kg=9 where id=$1 returning id', [offer])).rows).toHaveLength(0)
+    await asUser(a)
+    expect((await db.query('update arrival_offers set quantity_kg=2.5 where id=$1 returning id', [offer])).rows).toHaveLength(1)
+    await asUser(null)
+    expect(Number((await db.query<{ quantity_kg: string }>('select quantity_kg from arrival_offers where id=$1', [offer])).rows[0].quantity_kg)).toBe(2.5)
+    await expect(db.query('update arrival_offers set quantity_kg=0 where id=$1', [offer])).rejects.toMatchObject({ code: '42501' })
+  })
+  it('PFCEX-8/PFCEX-15: updated_at procede de PostgreSQL y una lectura no lo modifica', async () => {
+    await asUser(a)
+    const id = await insertArrival(true)
+    await db.exec('begin')
+    await db.query("update arrivals set vessel_name='TEST_UPDATED' where id=$1", [id])
+    const audit = await db.query<{ updated_at: Date; server_generated: boolean }>('select updated_at, updated_at=transaction_timestamp() as server_generated from arrivals where id=$1', [id])
+    expect(audit.rows[0].server_generated).toBe(true)
+    await db.exec('commit')
+    await asUser(null)
+    const first = await db.query<{ updated_at: Date }>('select updated_at from arrivals where id=$1', [id])
+    const second = await db.query<{ updated_at: Date }>('select updated_at from arrivals where id=$1', [id])
+    expect(first.rows[0].updated_at).toEqual(audit.rows[0].updated_at)
+    expect(second.rows[0].updated_at).toEqual(first.rows[0].updated_at)
+  })
   it('PFCEX-8: propietario edita estado/publicación, ajeno no puede actualizar su arribo', async () => {
     await asUser(a)
     const id = await insertArrival(true)
@@ -96,7 +134,7 @@ describe('migración PostgreSQL y RLS (PGlite, Auth emulado)', () => {
     await asUser(a)
     const id = await insertArrival()
     const offer = (await insertOffer(id)).rows[0].id
-    for (const [column, value] of [['quantity_kg', '0'], ['quantity_kg', 'NaN'], ['quantity_kg', '1000000000'], ['price_per_kg', '-1'], ['price_per_kg', '10000000000']]) {
+    for (const [column, value] of [['quantity_kg', '-1'], ['quantity_kg', 'NaN'], ['quantity_kg', '1000000000'], ['price_per_kg', '-1'], ['price_per_kg', '10000000000']]) {
       await expect(db.query(`update arrival_offers set ${column}=$1 where id=$2`, [value, offer])).rejects.toThrow()
     }
   })

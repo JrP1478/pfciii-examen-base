@@ -355,6 +355,17 @@ button:disabled {
   background:#e3eddf;
   border-color:#b8cfb2
 }
+.offer-card-status {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+.status-exhausted {
+  color:#803c29;
+  background:#f9e9dd;
+  border-color:#ddba9d;
+}
 .offer-card .eyebrow {
   color:#667a6e;
   font-size:9px;

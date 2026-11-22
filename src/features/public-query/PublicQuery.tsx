@@ -1,13 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { listPublishedArrivals } from '../arrivals/api'
-import { formatArrivalTime, type Arrival } from '../arrivals/model'
+import { formatArrivalTime, formatRecordUpdateTime, type Arrival } from '../arrivals/model'
 import { listPublishedOffers } from '../species-prices/api'
 import { type PublicOffer } from '../species-prices/model'
 import { OfferCard } from './OfferCard'
+import { ArrivalUpdatedAt } from './ArrivalUpdatedAt'
 
 type QueryState = { kind: 'loading' } | { kind: 'error' }
-  | { kind: 'ready'; arrivals: Arrival[]; offers: PublicOffer[]; updatedAt: string }
+  | { kind: 'ready'; arrivals: Arrival[]; offers: PublicOffer[]; queriedAt: string }
 export const PUBLIC_POLL_INTERVAL = 30_000
 
 export function PublicQuery({ refreshVersion }: { refreshVersion: number }) {
@@ -34,7 +35,7 @@ export function PublicQuery({ refreshVersion }: { refreshVersion: number }) {
           listPublishedArrivals(client!, controller.signal),
           listPublishedOffers(client!, filter, controller.signal),
         ])
-        if (active) setState({ kind: 'ready', arrivals, offers, updatedAt: new Date().toISOString() })
+        if (active) setState({ kind: 'ready', arrivals, offers, queriedAt: new Date().toISOString() })
       } catch { if (active) setState({ kind: 'error' }) }
       finally { if (active) schedule() }
     }
@@ -64,7 +65,7 @@ export function PublicQuery({ refreshVersion }: { refreshVersion: number }) {
           : state.kind === 'loading' ? <p role="status">Consultando avisos y ofertas…</p>
           : state.kind === 'error' ? <p role="alert">No se pudieron consultar los avisos y ofertas. Revisa la conexión y vuelve a actualizar.</p>
           : <>
-            <p>Última consulta correcta: {formatArrivalTime(state.updatedAt)}</p>
+            <p>Última consulta al servicio: <time dateTime={state.queriedAt}>{formatRecordUpdateTime(state.queriedAt)}</time> (Lima). Hora de lectura; no es la actualización de cada arribo.</p>
             <h3>Ofertas publicadas (hasta 100 recientes)</h3>
             {state.offers.length === 0 ? <p>{filter ? 'No hay ofertas publicadas para esa especie.' : 'No hay ofertas publicadas.'}</p>
               : <ul className="offer-list public-offers">{state.offers.map(offer => <li key={offer.id}><OfferCard offer={offer} /></li>)}</ul>}
@@ -76,6 +77,7 @@ export function PublicQuery({ refreshVersion }: { refreshVersion: number }) {
                 <p>{arrival.status === 'arrived' && arrival.actual_arrival_at
                   ? <>Llegada confirmada: <time dateTime={arrival.actual_arrival_at}>{formatArrivalTime(arrival.actual_arrival_at)}</time></>
                   : 'Llegada aún no confirmada.'}</p>
+                <ArrivalUpdatedAt value={arrival.updated_at} />
               </li>)}</ul>}
           </>}
       </div>
