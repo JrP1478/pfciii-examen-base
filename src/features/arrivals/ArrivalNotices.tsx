@@ -1,13 +1,19 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { isFisher, useAuth } from '../auth/AuthContext'
-import { saveArrival } from './api'
-import { validateArrival, type ArrivalForm } from './model'
+import { saveArrival, updateArrival } from './api'
+import { arrivalToForm, validateArrival, type Arrival, type ArrivalForm } from './model'
 
 const initialForm: ArrivalForm = { vesselName: '', estimatedAt: '', status: 'expected', actualAt: '', published: true }
 
-export function ArrivalNotices({ onSaved }: { onSaved: () => void }) {
+export function ArrivalNotices({ onSaved, initialArrival, onCancel }: {
+  onSaved: (arrival: Arrival) => void; initialArrival?: Arrival; onCancel?: () => void
+}) {
   const { client, session, loading } = useAuth()
-  const [form, setForm] = useState(initialForm)
+  const [form, setForm] = useState(() => initialArrival ? arrivalToForm(initialArrival) : initialForm)
+  const submitting = useRef(false)
+  const editorHeading = useRef<HTMLHeadingElement>(null)
+  const operational = !!onCancel
+  useEffect(() => { if (operational) editorHeading.current?.focus() }, [operational])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -15,24 +21,27 @@ export function ArrivalNotices({ onSaved }: { onSaved: () => void }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!enabled || !client || busy) return
+    if (!enabled || !client || !session || submitting.current) return
     setError(''); setConfirmation('')
     const result = validateArrival(form)
     if (result.error) { setError(result.error); return }
     if (!result.data) return
+    submitting.current = true
     setBusy(true)
     try {
-      const arrival = await saveArrival(client, result.data)
-      setConfirmation(`Arribo guardado${arrival.is_published ? ' y publicado' : ' como borrador'}. Código: ${arrival.id}`)
-      setForm(initialForm)
-      onSaved()
+      const arrival = initialArrival
+        ? await updateArrival(client, initialArrival.id, session.user.id, result.data)
+        : await saveArrival(client, result.data)
+      setConfirmation(`Arribo ${initialArrival ? 'actualizado' : 'guardado'}${arrival.is_published ? ' y publicado' : ' como borrador'}. Código: ${arrival.id}`)
+      setForm(initialArrival ? arrivalToForm(arrival) : initialForm)
+      onSaved(arrival)
     } catch { setError('No se pudo confirmar el guardado. Revisa tu sesión y permisos. Si perdiste la conexión, consulta los avisos antes de reintentar para evitar duplicados.') }
-    finally { setBusy(false) }
+    finally { submitting.current = false; setBusy(false) }
   }
 
   return (
     <section className="module" id="arribos" aria-labelledby="arrivals-title">
-      <span className="eyebrow">02 / Avisos de arribo</span><h2 id="arrivals-title">Registra tu arribo</h2>
+      <span className="eyebrow">Aviso de arribo</span><h2 ref={editorHeading} tabIndex={-1} id="arrivals-title">{initialArrival ? 'Editar arribo' : 'Registra tu arribo'}</h2>
       {!client ? <p>Registro no disponible: falta configurar Supabase.</p>
         : !enabled ? <p>Inicia sesión con una cuenta de pescador habilitada para registrar un arribo.</p>
         : <form onSubmit={submit}>
@@ -43,7 +52,8 @@ export function ArrivalNotices({ onSaved }: { onSaved: () => void }) {
           </select></label>
           {form.status === 'arrived' && <label>Llegada confirmada (hora de Lima)<input type="datetime-local" required min="2000-01-01T00:00" max="2100-12-31T18:59" value={form.actualAt} disabled={busy} onChange={e => setForm({ ...form, actualAt: e.target.value })} /></label>}
           <label className="checkbox-label"><input type="checkbox" checked={form.published} disabled={busy} onChange={e => setForm({ ...form, published: e.target.checked })} />Publicar para compradores</label>
-          <button disabled={busy}>{busy ? 'Guardando…' : 'Guardar arribo'}</button>
+          <div className="button-row"><button disabled={busy}>{busy ? 'Guardando…' : initialArrival ? 'Guardar cambios de arribo' : 'Guardar arribo'}</button>
+            {onCancel && <button className="button-secondary" type="button" disabled={busy} onClick={onCancel}>Cerrar formulario</button>}</div>
         </form>}
       {error && <p role="alert">{error}</p>}
       {confirmation && <p role="status">{confirmation}</p>}

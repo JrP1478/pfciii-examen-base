@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { isFisher, useAuth } from './AuthContext'
+import { LogoutButton } from './LogoutButton'
 
 export function FisherAuth() {
   const { client, session, loading, error: sessionError } = useAuth()
@@ -19,25 +20,15 @@ export function FisherAuth() {
     finally { setPassword(''); setBusy(false) }
   }
 
-  async function signOut() {
-    if (!client || busy) return
-    setBusy(true); setError('')
-    try {
-      const { error } = await client.auth.signOut({ scope: 'local' })
-      if (error) setError('No se pudo cerrar sesión. Inténtalo de nuevo.')
-    } catch { setError('No se pudo cerrar sesión. Revisa tu conexión.') }
-    finally { setBusy(false) }
-  }
-
   return (
     <section className="module" id="pescadores" aria-labelledby="auth-title">
-      <span className="eyebrow">01 / Pescadores</span><h2 id="auth-title">Tu acceso al terminal</h2>
+      <span className="eyebrow">Acceso de pescadores</span><h2 id="auth-title">Bienvenido a bordo.</h2>
       {!client ? <p>Acceso no disponible: falta configurar Supabase.</p>
         : loading ? <p role="status">Recuperando sesión…</p>
         : session ? <div>
           <p>Sesión iniciada: {session.user.email}</p>
           {!isFisher(session) && <p role="alert">Esta cuenta no está habilitada como pescador. Contacta al administrador.</p>}
-          <button type="button" disabled={busy} onClick={signOut}>Cerrar sesión</button>
+          <LogoutButton />
         </div> : <form onSubmit={signIn}>
           <p>Accede con tu cuenta prehabilitada. No hay registro público.</p>
           <label>Correo electrónico<input type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} disabled={busy} /></label>

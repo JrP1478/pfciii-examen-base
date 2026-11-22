@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { validateArrival, type ArrivalForm } from './model'
+import { arrivalToForm, validateArrival, type ArrivalForm } from './model'
 
 const form: ArrivalForm = { vesselName: 'TEST_ONLY', estimatedAt: '2026-11-21T08:30', status: 'expected', actualAt: '', published: true }
 beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-22T00:00:00Z')) })
 afterEach(() => { vi.restoreAllMocks() })
 describe('validación de arribos', () => {
+  it('PFCEX-8: recupera horas de Lima sin depender del huso del dispositivo', () => {
+    const edited = arrivalToForm({ id: 'own', vessel_name: 'TEST_ONLY', estimated_arrival_at: '2026-11-21T13:30:00Z', status: 'arrived', actual_arrival_at: '2026-11-21T14:15:00Z', is_published: false })
+    expect(edited).toMatchObject({ estimatedAt: '2026-11-21T08:30', actualAt: '2026-11-21T09:15', published: false })
+    expect(validateArrival(edited).data?.actual_arrival_at).toBe('2026-11-21T14:15:00.000Z')
+  })
   it('normaliza embarcación y convierte hora de Lima a UTC', () => {
     expect(validateArrival({ ...form, vesselName: ' TEST_ONLY ' }).data).toMatchObject({
       vessel_name: 'TEST_ONLY', estimated_arrival_at: '2026-11-21T13:30:00.000Z', actual_arrival_at: null,

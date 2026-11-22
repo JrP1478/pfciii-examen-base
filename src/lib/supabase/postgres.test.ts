@@ -51,6 +51,15 @@ beforeEach(async () => {
 afterAll(async () => { await db?.close() })
 
 describe('migración PostgreSQL y RLS (PGlite, Auth emulado)', () => {
+  it('PFCEX-8: propietario edita estado/publicación, ajeno no puede actualizar su arribo', async () => {
+    await asUser(a)
+    const id = await insertArrival(true)
+    expect((await db.query("update arrivals set vessel_name='TEST_EDITED', status='arrived', actual_arrival_at='2020-01-01T12:00:00Z', is_published=false where id=$1 returning id", [id])).rows).toHaveLength(1)
+    await asUser(b)
+    expect((await db.query("update arrivals set status='expected', actual_arrival_at=null, is_published=true where id=$1 returning id", [id])).rows).toHaveLength(0)
+    await asUser(null)
+    expect((await db.query('select id from arrivals where id=$1', [id])).rows).toHaveLength(0)
+  })
   it('PFCEX-10/PFCEX-11: crea, edita y despublica su oferta con cantidades y precios exactos', async () => {
     await asUser(a)
     const id = await insertArrival(true)

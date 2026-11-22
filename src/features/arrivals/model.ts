@@ -6,6 +6,7 @@ export type Arrival = {
   status: ArrivalStatus
   actual_arrival_at: string | null
   is_published: boolean
+  updated_at?: string
 }
 export type ArrivalForm = {
   vesselName: string
@@ -14,7 +15,13 @@ export type ArrivalForm = {
   actualAt: string
   published: boolean
 }
-export type ArrivalInput = Omit<Arrival, 'id'>
+export type ArrivalInput = Omit<Arrival, 'id' | 'updated_at'>
+
+export function arrivalToForm(arrival: Arrival): ArrivalForm {
+  const limaInput = (value: string) => new Date(new Date(value).getTime() - 5 * 3600_000).toISOString().slice(0, 16)
+  return { vesselName: arrival.vessel_name, estimatedAt: limaInput(arrival.estimated_arrival_at),
+    status: arrival.status, actualAt: arrival.actual_arrival_at ? limaInput(arrival.actual_arrival_at) : '', published: arrival.is_published }
+}
 
 // Hora de Lima (UTC-05:00), independiente de la configuración del dispositivo.
 function parseLimaDate(value: string): string | null {

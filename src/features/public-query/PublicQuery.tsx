@@ -3,7 +3,8 @@ import { useAuth } from '../auth/AuthContext'
 import { listPublishedArrivals } from '../arrivals/api'
 import { formatArrivalTime, type Arrival } from '../arrivals/model'
 import { listPublishedOffers } from '../species-prices/api'
-import { formatPrice, formatQuantity, type PublicOffer } from '../species-prices/model'
+import { type PublicOffer } from '../species-prices/model'
+import { OfferCard } from './OfferCard'
 
 type QueryState = { kind: 'loading' } | { kind: 'error' }
   | { kind: 'ready'; arrivals: Arrival[]; offers: PublicOffer[]; updatedAt: string }
@@ -66,14 +67,7 @@ export function PublicQuery({ refreshVersion }: { refreshVersion: number }) {
             <p>Última consulta correcta: {formatArrivalTime(state.updatedAt)}</p>
             <h3>Ofertas publicadas (hasta 100 recientes)</h3>
             {state.offers.length === 0 ? <p>{filter ? 'No hay ofertas publicadas para esa especie.' : 'No hay ofertas publicadas.'}</p>
-              : <ul className="offer-list public-offers">{state.offers.map(offer => <li key={offer.id}>
-                <h4>{offer.species_name}</h4>
-                <p>{formatQuantity(offer.quantity_kg)} kg disponibles · {formatPrice(offer.price_per_kg)}/kg</p>
-                <p>Embarcación: {offer.arrivals.vessel_name}</p>
-                <p>Llegada estimada: {formatArrivalTime(offer.arrivals.estimated_arrival_at)}</p>
-                <p>{offer.arrivals.status === 'arrived' && offer.arrivals.actual_arrival_at
-                  ? `Llegada confirmada: ${formatArrivalTime(offer.arrivals.actual_arrival_at)}` : 'Llegada aún no confirmada.'}</p>
-              </li>)}</ul>}
+              : <ul className="offer-list public-offers">{state.offers.map(offer => <li key={offer.id}><OfferCard offer={offer} /></li>)}</ul>}
             <h3>Arribos publicados (hasta 50 por llegada estimada)</h3>
             {state.arrivals.length === 0 ? <p>No hay avisos publicados.</p>
               : <ul className="arrival-list">{state.arrivals.map(arrival => <li key={arrival.id}>

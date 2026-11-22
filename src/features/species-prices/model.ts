@@ -8,8 +8,9 @@ export type Offer = {
   price_per_kg: number
   currency: 'PEN'
   is_published: boolean
+  updated_at?: string
 }
-export type OfferInput = Omit<Offer, 'id'>
+export type OfferInput = Omit<Offer, 'id' | 'updated_at'>
 export type PublicOffer = Offer & { arrivals: Arrival }
 export type OfferForm = { species: string; quantity: string; price: string; published: boolean }
 export const emptyOfferForm: OfferForm = { species: '', quantity: '', price: '', published: false }

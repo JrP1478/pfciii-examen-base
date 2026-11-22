@@ -29,7 +29,7 @@ en PEN (hasta 2 decimales) y publicación. Para retirar disponibilidad, despubli
 la cantidad debe seguir siendo positiva según el esquema existente. Una oferta solo es
 pública si también lo es su arribo. La consulta pública usa filtros explícitos de ambos
 campos incluso si el visitante tiene sesión de propietario; RLS sigue siendo la autorización.
-No se incluye edición de arribos en UI, eliminación ni paginación.
+No se incluye eliminación ni paginación. La edición de arribos propios está disponible en el panel.
 Las políticas sí permiten actualizar filas propias y prohíben eliminar mediante el API.
 La identidad propietaria y las fechas de auditoría se asignan en PostgreSQL.
 
@@ -75,7 +75,35 @@ las verificaciones de este repositorio no demuestran acceso al proyecto Supabase
    Toda variable `VITE_` es pública: nunca usar claves administrativas.
    La presencia de variables no demuestra conectividad.
 7. Vercel: Node.js 24, build `npm run build`, salida `dist`; configurar las mismas variables
-   públicas en el entorno correspondiente. No hay despliegue verificado en este incremento.
+   públicas en el entorno correspondiente. `vercel.json` aplica fallback SPA a `index.html`.
+
+## Incremento 04: experiencias y rutas (PFCEX-8, PFCEX-16, PFCEX-17)
+
+| Ruta | Experiencia |
+| --- | --- |
+| `/` | Landing comercial, ilustración SVG original y hasta tres ofertas públicas obtenidas del API real |
+| `/ofertas` | Catálogo anónimo, filtro por especie, arribos y ofertas; polling de 30 s y actualización manual |
+| `/acceso` | Supabase Auth con cuentas prehabilitadas; pescador autenticado redirigido a `/panel` |
+| `/panel` | Sesión y rol `fisher` obligatorios antes de montar el panel; resumen de sus registros cargados, arribos y ofertas propios |
+
+React Router maneja las rutas; el panel y catálogo se cargan bajo demanda. Mientras se recupera
+la sesión no se montan formularios ni consultas privadas. El panel permite registrar y editar
+embarcación, estimada, estado, hora confirmada y publicación; convierte horas de Lima a UTC.
+La actualización filtra por UUID y propietario, envía solo campos permitidos y confirma la fila
+devuelta por Supabase. Mantiene RLS, auditoría y migración existentes; no inserta datos de demostración.
+
+Pruebas específicas: `src/app/routes.test.tsx` (navegación, rutas públicas, guards, redirecciones
+y actualización panel/catálogo), `src/features/arrivals/{ArrivalNotices,api,model}.test.*`
+(edición, errores, doble envío y Lima) y `src/lib/supabase/postgres.test.ts` (denegación ajena).
+Los tests de ofertas, filtros, publicación y polling siguen activos. Los mocks/PGlite no
+acreditan una escritura autenticada real. Sin navegador conectado, la revisión visual a
+360/768/1280 px queda pendiente; no se declara realizada.
+
+Validación manual del incremento: abrir directamente las cuatro rutas del Preview; comprobar
+`/panel` sin sesión y con rol no autorizado; iniciar sesión, editar un arribo propio y comprobar
+la fila y su publicación en otra ventana con `/ofertas`. Revisar teclado, móvil y cierre de sesión.
+El aviso de MVP demostrativo identifica que los registros pueden ser de prueba y no son
+operaciones comerciales verificadas. No hay carrito, reservas ni pagos.
 
 Referencias oficiales: [Auth](https://supabase.com/docs/guides/auth/general-configuration),
 [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
@@ -194,6 +222,6 @@ Estas reglas no sustituyen una revisión exhaustiva ni verifican las políticas 
 Gitleaks usa la CLI gratuita, sin la Action que puede requerir licencia. No carga `.env.local`
 ni publica informes con valores sensibles. Los resultados comprobables quedan en los logs y
 en el resumen de los jobs `verify`, `sast` y `secrets` de cada ejecución de CI en `test`.
-La verificación local reportó lint correcto, 114 pruebas aprobadas, build correcto y cero
+La verificación de la Pregunta 4 reportó lint correcto, 114 pruebas aprobadas, build correcto y cero
 vulnerabilidades npm. Los resultados de Semgrep y Gitleaks se registran en la CI completa;
 la existencia del workflow no constituye por sí sola evidencia de ejecución exitosa.

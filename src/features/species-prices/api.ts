@@ -2,8 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Arrival } from '../arrivals/model'
 import type { Offer, OfferInput, PublicOffer } from './model'
 
-const offerColumns = 'id,arrival_id,species_name,quantity_kg,price_per_kg,currency,is_published'
-const arrivalColumns = 'id,vessel_name,estimated_arrival_at,status,actual_arrival_at,is_published'
+const offerColumns = 'id,arrival_id,species_name,quantity_kg,price_per_kg,currency,is_published,updated_at'
+const arrivalColumns = 'id,vessel_name,estimated_arrival_at,status,actual_arrival_at,is_published,updated_at'
 
 export async function listOwnArrivals(client: SupabaseClient, ownerId: string, signal?: AbortSignal): Promise<Arrival[]> {
   let query = client.from('arrivals').select(arrivalColumns).eq('owner_id', ownerId)

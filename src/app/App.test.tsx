@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
+import { MemoryRouter } from 'react-router'
 
 vi.mock('../lib/supabase/client', () => ({
   getSupabaseClient: () => null,
@@ -8,15 +9,12 @@ vi.mock('../lib/supabase/client', () => ({
 }))
 
 describe('interfaz inicial', () => {
-  it('expone cuatro módulos y comunica la consulta pendiente', () => {
-    const html = renderToStaticMarkup(<App />)
-    for (const section of ['pescadores', 'arribos', 'especies', 'consulta']) {
-      expect(html).toContain(`id="${section}"`)
-      expect(html).toContain(`href="#${section}"`)
-    }
+  it('ofrece navegación pública sin formularios administrativos', () => {
+    const html = renderToStaticMarkup(<MemoryRouter><App /></MemoryRouter>)
+    expect(html).toContain('href="/ofertas"')
+    expect(html).toContain('href="/acceso"')
     expect(html).toContain('Consulta no disponible: falta configurar Supabase.')
-    expect(html).toContain('Registro no disponible: falta configurar Supabase.')
-    expect(html).toContain('Falta configurar las variables públicas de Supabase.')
+    expect(html).toContain('MVP demostrativo')
     expect(html).not.toContain('<form')
   })
 })
