@@ -51,6 +51,46 @@ beforeEach(async () => {
 afterAll(async () => { await db?.close() })
 
 describe('migración PostgreSQL y RLS (PGlite, Auth emulado)', () => {
+  it('PFCEX-10/PFCEX-11: crea, edita y despublica su oferta con cantidades y precios exactos', async () => {
+    await asUser(a)
+    const id = await insertArrival(true)
+    const offer = (await insertOffer(id, true)).rows[0].id
+    const result = await db.query<{ species_name: string; quantity_kg: string; price_per_kg: string; is_published: boolean }>(
+      'update arrival_offers set species_name=$1, quantity_kg=$2, price_per_kg=$3, is_published=false where id=$4 returning species_name,quantity_kg,price_per_kg,is_published',
+      ['TEST_UPDATED', '12.345', '6.75', offer],
+    )
+    expect(result.rows[0].species_name).toBe('TEST_UPDATED')
+    expect(Number(result.rows[0].quantity_kg)).toBe(12.345)
+    expect(Number(result.rows[0].price_per_kg)).toBe(6.75)
+    expect(result.rows[0].is_published).toBe(false)
+    await asUser(null)
+    expect((await db.query('select id from arrival_offers')).rows).toHaveLength(0)
+  })
+  it('PFCEX-13/PFCEX-14: filtra especie publicada y oculta ofertas al privatizar su arribo', async () => {
+    await asUser(a)
+    const id = await insertArrival(true)
+    await insertOffer(id, true)
+    await insertOffer(id, false)
+    const sql = `select o.id from arrival_offers o join arrivals a on a.id=o.arrival_id
+      where o.is_published and a.is_published and o.species_name ilike $1`
+    // These explicit filters also exclude the owner's own drafts.
+    expect((await db.query(sql, ['%test_only%'])).rows).toHaveLength(1)
+    await asUser(null)
+    expect((await db.query(sql, ['%test_only%'])).rows).toHaveLength(1)
+    expect((await db.query(sql, ['%NO_MATCH%'])).rows).toHaveLength(0)
+    await asUser(a)
+    await db.query('update arrivals set is_published=false where id=$1', [id])
+    await asUser(null)
+    expect((await db.query('select id from arrival_offers')).rows).toHaveLength(0)
+  })
+  it('PFCEX-10/PFCEX-11: PostgreSQL rechaza cantidades y precios fuera de límites', async () => {
+    await asUser(a)
+    const id = await insertArrival()
+    const offer = (await insertOffer(id)).rows[0].id
+    for (const [column, value] of [['quantity_kg', '0'], ['quantity_kg', 'NaN'], ['quantity_kg', '1000000000'], ['price_per_kg', '-1'], ['price_per_kg', '10000000000']]) {
+      await expect(db.query(`update arrival_offers set ${column}=$1 where id=$2`, [value, offer])).rejects.toThrow()
+    }
+  })
   it('permite crear y modificar el propio arribo y mantiene auditoría', async () => {
     await asUser(a)
     const id = await insertArrival()

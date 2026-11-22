@@ -68,3 +68,16 @@ input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px s
 .arrival-list li { padding: 18px; background: #fcfcf8; border: 1px solid #c4d1bd; border-radius: 5px; }
 .arrival-list p { margin: 8px 0 0; }
 .public-results { min-width: 0; }
+.modules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.offers-module { grid-column: 1 / -1; }
+.offers-module > button { margin-bottom: 18px; }
+.offers-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 24px; }
+.button-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.offer-list { list-style: none; padding: 0; display: grid; gap: 14px; max-height: 560px; overflow-y: auto; }
+.offer-list li { padding: 18px; background: #fcfcf8; border: 1px solid #c4d1bd; border-radius: 5px; }
+.offer-list p { margin: 8px 0; }
+h4 { margin: 0; font-size: 16px; }
+.public-board { grid-template-columns: minmax(0, 1fr); }
+.public-offers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.public-filter { max-width: 600px; }
+@media (max-width: 640px) { .modules, .offers-workspace, .public-offers { grid-template-columns: minmax(0, 1fr); } }

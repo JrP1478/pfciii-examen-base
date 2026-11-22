@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { AuthContext, type AuthState } from './auth/AuthContext'
@@ -7,8 +7,11 @@ import { FisherAuth } from './auth/FisherAuth'
 import { ArrivalNotices } from './arrivals/ArrivalNotices'
 import { PublicQuery } from './public-query/PublicQuery'
 import { listPublishedArrivals, saveArrival } from './arrivals/api'
+import { listPublishedOffers } from './species-prices/api'
 
 vi.mock('./arrivals/api', () => ({ saveArrival: vi.fn(), listPublishedArrivals: vi.fn() }))
+vi.mock('./species-prices/api', () => ({ listPublishedOffers: vi.fn() }))
+beforeEach(() => { vi.mocked(listPublishedOffers).mockResolvedValue([]) })
 afterEach(() => { cleanup(); vi.resetAllMocks() })
 const session = { user: { id: 'test-fisher', email: 'test@example.invalid', app_metadata: { role: 'fisher' } } } as unknown as Session
 const base: AuthState = { client: {} as SupabaseClient, session, loading: false, error: '' }

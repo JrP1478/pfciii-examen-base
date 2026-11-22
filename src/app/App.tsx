@@ -14,6 +14,7 @@ export function App() {
 function AppContent() {
   const { session } = useAuth()
   const [refreshVersion, setRefreshVersion] = useState(0)
+  const [arrivalsVersion, setArrivalsVersion] = useState(0)
   return (
     <>
       <a className="skip-link" href="#contenido">Saltar al contenido</a>
@@ -49,7 +50,9 @@ function AppContent() {
             : supabaseConfig.message}</span>
         </aside>
         <div className="section-heading"><span className="eyebrow">Una plataforma, cuatro espacios</span><h2>Desde el mar hasta el terminal</h2></div>
-        <div className="modules"><FisherAuth /><ArrivalNotices key={session?.user.id ?? 'visitor'} onSaved={() => setRefreshVersion(value => value + 1)} /><SpeciesPrices /></div>
+        <div className="modules"><FisherAuth /><ArrivalNotices key={session?.user.id ?? 'visitor'} onSaved={() => {
+          setRefreshVersion(value => value + 1); setArrivalsVersion(value => value + 1)
+        }} /><SpeciesPrices arrivalsVersion={arrivalsVersion} onSaved={() => setRefreshVersion(value => value + 1)} /></div>
         <PublicQuery refreshVersion={refreshVersion} />
       </main>
       <footer><span>Terminal Pesquero de Chorrillos</span><span>MVP académico · PFC III Tipo F</span></footer>

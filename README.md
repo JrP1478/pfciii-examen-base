@@ -16,19 +16,28 @@ npm run preview
 
 - `src/features/auth`: login con cuenta prehabilitada, recuperación de sesión y cierre local.
 - `src/features/arrivals`: registro validado; confirma guardado únicamente al recibir la fila de Supabase.
-- `src/features/public-query`: consulta de hasta 50 avisos publicados, sin login, con actualización manual.
-- `src/features/species-prices`: interfaz pendiente; `arrival_offers` prepara el siguiente incremento.
+- `src/features/public-query`: consulta sin login de hasta 50 arribos y 100 ofertas publicados, filtro por especie y actualización manual/polling.
+- `src/features/species-prices`: selección de hasta 100 arribos propios recientes, creación y edición de sus ofertas (hasta 100 recientes por arribo).
 - `src/lib/supabase`: configuración pública y cliente único.
 - `src/app`: composición y estilos responsive.
 
 Estado de arribo: `expected` (estimado) o `arrived` (confirmado, exige hora real no futura).
 La publicación es independiente mediante `is_published`; los borradores no son públicos.
 Las horas del formulario y listado son de Lima (UTC−05:00).
-Este incremento no incluye edición en UI, eliminación, paginación ni gestión de ofertas.
+Las ofertas admiten especie, cantidad disponible en kg (hasta 3 decimales), precio por kg
+en PEN (hasta 2 decimales) y publicación. Para retirar disponibilidad, despublicar la oferta;
+la cantidad debe seguir siendo positiva según el esquema existente. Una oferta solo es
+pública si también lo es su arribo. La consulta pública usa filtros explícitos de ambos
+campos incluso si el visitante tiene sesión de propietario; RLS sigue siendo la autorización.
+No se incluye edición de arribos en UI, eliminación ni paginación.
 Las políticas sí permiten actualizar filas propias y prohíben eliminar mediante el API.
 La identidad propietaria y las fechas de auditoría se asignan en PostgreSQL.
 
-## Configuración y aplicación de SQL (pendiente en Supabase real)
+## Esquema existente y configuración
+
+Este incremento no cambia SQL ni RLS. No volver a ejecutar la migración en el proyecto
+que ya la tiene aplicada. Los pasos 1–3 solo describen la instalación inicial en un proyecto nuevo;
+las verificaciones de este repositorio no demuestran acceso al proyecto Supabase real.
 
 1. En el proyecto Supabase de destino, abrir **SQL Editor → New query**.
 2. Copiar y ejecutar completo `supabase/migrations/202611210001_arrivals.sql` una sola vez.
@@ -116,6 +125,38 @@ En el proyecto de pruebas autorizado, usar dos cuentas prehabilitadas A y B con 
    Con una cuenta sin rol `fisher`, el INSERT debe fallar por RLS.
 7. Interrumpir la conexión y actualizar: debe aparecer error, no una lista vacía presentada como éxito.
 
+## Ofertas: trazabilidad y comprobación manual
+
+| Historia | Implementación | Pruebas específicas |
+| --- | --- | --- |
+| PFCEX-10 | `species-prices/SpeciesPrices.tsx`, `OfferEditor.tsx`, `model.ts`, `api.ts` | `species-prices/model.test.ts`, `api.test.ts`, `SpeciesPrices.test.tsx`: creación, selección propia, validación y errores |
+| PFCEX-11 | `species-prices/OfferEditor.tsx`, `api.ts` | Mismos tests: edición, despublicación, cancelación y denegación; `lib/supabase/postgres.test.ts`: escritura ajena, constraints y RLS |
+| PFCEX-13 | `public-query/PublicQuery.tsx`, `species-prices/api.ts` | `public-query/PublicQuery.test.tsx`: lectura anónima, flujo publicar/editar/retirar, errores, polling y limpieza; `postgres.test.ts`: borradores y arribo privado |
+| PFCEX-14 | `public-query/PublicQuery.tsx`, `species-prices/api.ts` | `PublicQuery.test.tsx` y `api.test.ts`: filtro de especie, comodines literales, limpieza y estado vacío; `postgres.test.ts`: lectura filtrada |
+
+Rutas relativas a `src/features/`, salvo `src/lib/supabase/postgres.test.ts`.
+No se añadieron dependencias ni se modificó la migración ya aplicada.
+
+Con las cuentas autorizadas A/B y una ventana privada:
+
+1. Como A, seleccionar un arribo propio; crear una oferta con información autorizada,
+   cantidad positiva y precio en soles. Probar borrador y después editar para publicarla.
+   Aceptar el guardado solo tras la confirmación con UUID y verificar la fila en Supabase.
+2. En ventana privada, comprobar especie, kg, precio y embarcación. Filtrar por la especie
+   y por un texto sin coincidencias; limpiar el filtro. Un arribo privado no debe mostrar ofertas.
+3. Como A, editar especie, cantidad y precio. La consulta de otra ventana debe reflejar
+   los cambios con **Actualizar avisos** o tras el siguiente polling. Despublicar debe retirarla.
+4. Como B, no debe aparecer el arribo de A en el selector. Para verificar la autorización SQL,
+   usar la transacción de claims de B descrita arriba y ejecutar:
+   `update public.arrival_offers set price_per_kg=1 where id='<UUID_OFERTA_A>'::uuid returning id;`
+   Debe devolver cero filas; terminar con `rollback;`. No cambiar datos operativos para esta prueba.
+5. Probar cantidad/precio cero, negativos y exceso de decimales: la UI debe rechazarlos.
+   Simular pérdida de conexión: debe aparecer error y no confirmación de éxito.
+
+La consulta pública programa un polling **30 segundos después de terminar la consulta
+anterior**, omite ciclos con la pestaña oculta y conserva actualización manual. No es tiempo
+real: al desmontar o cambiar filtro se cancela el temporizador y se abortan peticiones previas.
+
 ## Evidencia automatizada frente a integración real
 
 `npm test` cubre validación, estados de UI, login/logout, recuperación de sesión, errores
@@ -123,4 +164,7 @@ y adaptación al API mediante dobles de prueba. Además ejecuta la migración en
 en memoria con PGlite y prueba constraints, permisos y RLS con roles `anon/authenticated`.
 Ese entorno emula `auth.uid()`/`auth.jwt()`: no verifica Supabase Auth, PostgREST,
 credenciales, correo ni infraestructura remota. Los datos sintéticos viven solo en pruebas.
-La integración real queda pendiente hasta completar el procedimiento anterior.
+En este incremento se comprobó la lectura anónima real mediante las funciones del API:
+arribos publicados (una fila), ofertas publicadas y filtro por especie (sin filas), sin errores.
+No se insertaron datos remotos. Esto no prueba login, persistencia de ofertas, edición ni
+denegación de acceso ajeno en Supabase real: esos pasos autenticados siguen pendientes.
